@@ -1,18 +1,18 @@
-FROM mcr.microsoft.com/dotnet/core/runtime:3.1-nanoserver-1909 AS base
-WORKDIR /app
+#Depending on the operating system of the host machines(s) that will build or run the containers, the image specified in the FROM statement may need to be changed.
+#For more information, please see https://aka.ms/containercompat
 
-FROM mcr.microsoft.com/dotnet/core/sdk:3.1-nanoserver-1909 AS build
+FROM mcr.microsoft.com/dotnet/sdk:5.0 As build
 WORKDIR /src
-COPY ["myWebApp.csproj", "./"]
-RUN dotnet restore "./myWebApp.csproj"
+
+COPY *.csproj .
+RUN dotnet restore
+
 COPY . .
-WORKDIR "/src/."
-RUN dotnet build "myWebApp.csproj" -c Release -o /app/build
+RUN dotnet publish -c Release -o /app
 
-FROM build AS publish
-RUN dotnet publish "myWebApp.csproj" -c Release -o /app/publish
-
-FROM base AS final
+FROM mcr.microsoft.com/dotnet/aspnet:5.0 AS runtime
 WORKDIR /app
-COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "myWebApp.dll"]
+COPY --from=build /app ./
+ENV ASPNETCORE_URLS http://*:5000
+
+ENTRYPOINT ["dotnet","myWebApp.dll"]
